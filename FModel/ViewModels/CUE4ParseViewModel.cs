@@ -438,7 +438,7 @@ namespace FModel.ViewModels
             {
                 Thread.Sleep(10);
                 cancellationToken.ThrowIfCancellationRequested();
-                try {Extract(asset.FullPath, TabControl.HasNoTabs);} catch {/**/}
+                try {Extract(asset, TabControl.HasNoTabs);} catch {/**/}
             }
 
             foreach (var f in folder.Folders) ExtractFolder(cancellationToken, f);
@@ -450,7 +450,7 @@ namespace FModel.ViewModels
             {
                 Thread.Sleep(10);
                 cancellationToken.ThrowIfCancellationRequested();
-                ExportData(asset.FullPath);
+                ExportData(asset);
             }
 
             foreach (var f in folder.Folders) ExportFolder(cancellationToken, f);
@@ -462,7 +462,7 @@ namespace FModel.ViewModels
             {
                 Thread.Sleep(10);
                 cancellationToken.ThrowIfCancellationRequested();
-                try {Extract(asset.FullPath, TabControl.HasNoTabs, true);} catch {/**/}
+                try {Extract(asset, TabControl.HasNoTabs, true);} catch {/**/}
             }
 
             foreach (var f in folder.Folders) SaveFolder(cancellationToken, f);
@@ -474,13 +474,15 @@ namespace FModel.ViewModels
             {
                 Thread.Sleep(10);
                 cancellationToken.ThrowIfCancellationRequested();
-                Extract(asset.FullPath, TabControl.HasNoTabs);
+                Extract(asset, TabControl.HasNoTabs);
             }
         }
 
-        public void Extract(string fullPath, bool addNewTab = false, bool bulkSave = false)
+        public void Extract(AssetItem asset, bool addNewTab = false, bool bulkSave = false)
         {
-            Log.Information("User DOUBLE-CLICKED to extract '{FullPath}'", fullPath);
+            var fullPath = asset.FullPath;
+            var pakName = asset.Package;
+            Log.Information("User DOUBLE-CLICKED to extract '{FullPath}' in '{PakName}'", fullPath, pakName);
 
             var directory = fullPath.SubstringBeforeLast('/');
             var fileName = fullPath.SubstringAfterLast('/');
@@ -505,7 +507,7 @@ namespace FModel.ViewModels
                 case "uasset":
                 case "umap":
                 {
-                    var exports = Provider.LoadObjectExports(fullPath);
+                    var exports = Provider.LoadObjectExports(fullPath, pakName);
                     TabControl.SelectedTab.SetDocumentText(JsonConvert.SerializeObject(exports, Formatting.Indented), bulkSave);
                     if (bulkSave) break;
 
@@ -539,7 +541,7 @@ namespace FModel.ViewModels
                 case "po":
                 case "h":
                 {
-                    if (Provider.TrySaveAsset(fullPath, out var data))
+                    if (Provider.TrySaveAsset(fullPath, out var data, pakName))
                     {
                         using var stream = new MemoryStream(data) {Position = 0};
                         using var reader = new StreamReader(stream);
@@ -550,7 +552,7 @@ namespace FModel.ViewModels
                 }
                 case "locmeta":
                 {
-                    if (Provider.TryCreateReader(fullPath, out var archive))
+                    if (Provider.TryCreateReader(fullPath, out var archive, pakName))
                     {
                         var metadata = new FTextLocalizationMetaDataResource(archive);
                         TabControl.SelectedTab.SetDocumentText(JsonConvert.SerializeObject(metadata, Formatting.Indented), bulkSave);
@@ -559,7 +561,7 @@ namespace FModel.ViewModels
                 }
                 case "locres":
                 {
-                    if (Provider.TryCreateReader(fullPath, out var archive))
+                    if (Provider.TryCreateReader(fullPath, out var archive, pakName))
                     {
                         var locres = new FTextLocalizationResource(archive);
                         TabControl.SelectedTab.SetDocumentText(JsonConvert.SerializeObject(locres, Formatting.Indented), bulkSave);
@@ -568,7 +570,7 @@ namespace FModel.ViewModels
                 }
                 case "bin" when fileName.Contains("AssetRegistry"):
                 {
-                    if (Provider.TryCreateReader(fullPath, out var archive))
+                    if (Provider.TryCreateReader(fullPath, out var archive, pakName))
                     {
                         var registry = new FAssetRegistryState(archive);
                         TabControl.SelectedTab.SetDocumentText(JsonConvert.SerializeObject(registry, Formatting.Indented), bulkSave);
@@ -578,7 +580,7 @@ namespace FModel.ViewModels
                 case "bnk":
                 case "pck":
                 {
-                    if (Provider.TryCreateReader(fullPath, out var archive))
+                    if (Provider.TryCreateReader(fullPath, out var archive, pakName))
                     {
                         var wwise = new WwiseReader(archive);
                         TabControl.SelectedTab.SetDocumentText(JsonConvert.SerializeObject(wwise, Formatting.Indented), bulkSave);
@@ -591,14 +593,14 @@ namespace FModel.ViewModels
                 }
                 case "wem":
                 {
-                    if (Provider.TrySaveAsset(fullPath, out var input))
+                    if (Provider.TrySaveAsset(fullPath, out var input, pakName))
                         SaveAndPlaySound(fullPath, "WEM", input);
 
                     break;
                 }
                 case "udic":
                 {
-                    if (Provider.TryCreateReader(fullPath, out var archive))
+                    if (Provider.TryCreateReader(fullPath, out var archive, pakName))
                     {
                         var header = new FOodleDictionaryArchive(archive).Header;
                         TabControl.SelectedTab.SetDocumentText(JsonConvert.SerializeObject(header, Formatting.Indented), bulkSave);
@@ -609,7 +611,7 @@ namespace FModel.ViewModels
                 case "jpg":
                 case "bmp":
                 {
-                    if (Provider.TrySaveAsset(fullPath, out var data))
+                    if (Provider.TrySaveAsset(fullPath, out var data, pakName))
                     {
                         using var stream = new MemoryStream(data) {Position = 0};
                         TabControl.SelectedTab.AddImage(fileName.SubstringBeforeLast("."), false, SKBitmap.Decode(stream));
@@ -618,7 +620,7 @@ namespace FModel.ViewModels
                 }
                 case "svg":
                 {
-                    if (Provider.TrySaveAsset(fullPath, out var data))
+                    if (Provider.TrySaveAsset(fullPath, out var data, pakName))
                     {
                         using var stream = new MemoryStream(data) { Position = 0 };
                         var svg = new SkiaSharp.Extended.Svg.SKSvg(new SKSize(512, 512));
@@ -643,7 +645,7 @@ namespace FModel.ViewModels
                 case "ushaderbytecode":
                 case "ushadercode":
                 {
-                    if (Provider.TryCreateReader(fullPath, out var archive))
+                    if (Provider.TryCreateReader(fullPath, out var archive, pakName))
                     {
                         var ar = new FShaderCodeArchive(archive);
                         TabControl.SelectedTab.SetDocumentText(JsonConvert.SerializeObject(ar, Formatting.Indented), bulkSave);
@@ -785,10 +787,12 @@ namespace FModel.ViewModels
             }
         }
 
-        public void ExportData(string fullPath)
+        public void ExportData(AssetItem asset)
         {
+            var fullPath = asset.FullPath;
+            var pakName = asset.Package;
             var fileName = fullPath.SubstringAfterLast('/');
-            if (Provider.TrySavePackage(fullPath, out var assets))
+            if (Provider.TrySavePackage(fullPath, out var assets, pakName))
             {
                 foreach (var kvp in assets)
                 {

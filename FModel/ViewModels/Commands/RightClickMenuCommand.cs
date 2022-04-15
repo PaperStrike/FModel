@@ -29,21 +29,21 @@ namespace FModel.ViewModels.Commands
                         foreach (var asset in assetItems)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            contextViewModel.CUE4Parse.Extract(asset.FullPath, true);
+                            contextViewModel.CUE4Parse.Extract(asset, true);
                         }
                         break;
                     case "Assets_Export_Data":
                         foreach (var asset in assetItems)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            contextViewModel.CUE4Parse.ExportData(asset.FullPath);
+                            contextViewModel.CUE4Parse.ExportData(asset);
                         }
                         break;
                     case "Assets_Save_Properties":
                         foreach (var asset in assetItems)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            contextViewModel.CUE4Parse.Extract(asset.FullPath);
+                            contextViewModel.CUE4Parse.Extract(asset);
                             contextViewModel.CUE4Parse.TabControl.SelectedTab.SaveProperty(false);
                         }
                         break;
@@ -51,7 +51,7 @@ namespace FModel.ViewModels.Commands
                         foreach (var asset in assetItems)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            contextViewModel.CUE4Parse.Extract(asset.FullPath);
+                            contextViewModel.CUE4Parse.Extract(asset);
                             contextViewModel.CUE4Parse.TabControl.SelectedTab.SaveImage(false);
                         }
                         break;

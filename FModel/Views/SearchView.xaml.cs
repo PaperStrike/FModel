@@ -58,7 +58,7 @@ namespace FModel.Views
                 return;
 
             WindowState = WindowState.Minimized;
-            await _threadWorkerView.Begin(_ => _applicationView.CUE4Parse.Extract(assetItem.FullPath, true));
+            await _threadWorkerView.Begin(_ => _applicationView.CUE4Parse.Extract(assetItem, true));
 
             MainWindow.YesWeCats.Activate();
         }
